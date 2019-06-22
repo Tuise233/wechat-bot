@@ -15,12 +15,12 @@ def get_weather(api):
         return response.json()
 
 if __name__ == '__main__':
-        jsAPI = 'http://open.iciba.com/dsapi/'
-        tqAPI = 'https://www.tianqiapi.com/api/'
+        jsAPI = 'http://open.iciba.com/dsapi/' #每日一句API
+        tqAPI = 'https://www.tianqiapi.com/api/' #天气预报API
         itchat.auto_login(hotReload=True)
         sentence = get_sentence(jsAPI)
         content = sentence['content'] #英文句子
-        note = sentence['note']
+        note = sentence['note'] #中文翻译
 
         weather = get_weather(tqAPI)
         info = weather['data'][0]
