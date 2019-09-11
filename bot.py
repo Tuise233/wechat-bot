@@ -1,97 +1,80 @@
-import itchat
-import re
+#崽崽BOT 重制版
+#利用itchat模块 制作崽崽BOT
+#天气API：https://www.tianqiapi.com/api/?version=v1&cityid=101110101&appid=[appid]&appsecret=[appsecret] 城市ID 罗源101230104
 import requests
-import datetime
+import threading
+import itchat
 import time
+import datetime
 import json
 
-def get_sentence(api): #每日一句
-        sentence = requests.get(api)
-        return sentence.json()
+#天气获取
+def get_weather():
+    url = 'https://www.tianqiapi.com/api/?version=v1&cityid=101230104&appid=[appid]&appsecret=[appsecret]'
+    html = requests.get(url)
+    content = html.text
+    text = content.encode('utf-8').decode('unicode_escape')
+    jtext = json.loads(text)
+    city = jtext['city']
+    datas = jtext['data'][0]
+    date = datas['date']
+    week = datas['week']
+    wea = datas['wea']
+    air_level = datas['air_level']
+    air_tips = datas['air_tips']
+    result = "{}\n呼呼~今天已经{}啦~\n今天{}的天气是{},空气质量{}\n{}".format(date,week,city,wea,air_level,air_tips)
+    return result
 
-def get_weather(api): #天气预报
-        response = requests.get(api)
-        return response.json()
+#自动回复 (这里使用了免费机器人接口)
+def bot_reply(content):
+    url='http://i.itpk.cn/api.php?question='+content
+    html = requests.get(url)
+    result = html.text
+    return result
 
-def get_trans(content): #翻译
-        url = 'http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule'
-        post_form = {
-                'i':content,
-                'from':'AUTO',
-                'to':'AUTO',
-                'smartresult':'dict',
-                'client':'fanyideskweb',
-                'salt':'15611977983364',
-                'sign':'8d7e3648b57bb328b326a08eb9928c2b',
-                'ts':'1561197798336',
-                'bv':'e2a78ed30c66e16a857c5b6486a1d326',
-                'doctype':'json',
-                'version':'2.1',
-                'keyfrom':'fanyi.web',
-                'action':'FY_BY_REALTlME'
-        }
-        response = requests.post(url,data=post_form)
-        translate_json = response.text
-        translate_dict = json.loads(translate_json)
-        result = translate_dict['translateResult'][0][0]['tgt']
-        return result
+#启动机器人
+def bot_run():
+    itchat.auto_login(hotReload=True)
+    itchat.run()
 
-def auto_chat(text):
-        url = 'http://api.qingyunke.com/api.php?key=free&appid=0&msg={}'.format(text)
-        datas={
-                "key":"free",
-                "appid":"0",
-                "msg":text
-        }
-        response = requests.post(url,data=datas)
-        html = json.loads(response.text)
-        return html['content']
-
-def get_daytips():
-        while True:
-                jsAPI = 'http://open.iciba.com/dsapi/'
-                tqAPI = 'https://www.tianqiapi.com/api/'
-                sentence = get_sentence(jsAPI)
-                content = sentence['content'] #英文句子
-                note = sentence['note']
-                weather = get_weather(tqAPI)
-                info = weather['data'][0]
-                tips = '城市:{}\n日期:{}\n空气指数:{} - {}\n天气情况:{}\n小提示:{}\n'.format(weather['city'],info['date'],info['air'],info['air_level'],info['wea'],info['air_tips'])
-                users = itchat.search_friends('as') #搜索发送UserName (崽崽 = 用户备注)
-                UserName = users[0]['UserName']
-                while True:
-                        time = datetime.datetime.now()
-                        year = time.year
-                        month = time.month
-                        day = time.day
-                        hour = time.hour
-                        minute = time.minute
-                        now = '现在是北京时间{}.{}.{} {}:{}'.format(year,month,day,hour,minute)
-                        if hour == 10 and minute == 41:
-                                string = '[崽崽BOT]\n{}\n\n每日一句:{}\n{}\n\n天气信息:\n{}'.format(now,content,note,tips)
-                                itchat.send_msg(string,UserName)
-                                break
-
-#返回用户输入的参数
-@itchat.msg_register(itchat.content.TEXT)
-def print_content(msg):
-        FromUserName = msg['FromUserName']
-        ToUserName = msg['ToUserName']
-        text = msg['Text']
-        if text.find('_') != -1:
-                CutText = text.split('_')
-                if CutText[0] == '翻译':
-                        trans = get_trans(CutText[1])
-                        itchat.send_msg('[崽崽BOT]\n翻译结果:{}'.format(trans),toUserName = FromUserName)
+#定时推送消息
+def bot_push():
+    friend = ['@5bf1ad9889d7a642dcdd7b54472629f95edd1d9d5b43815cda50488cc61be76d','@2a020a846b287bf7d19bd2664537c0527c947e80a94d7c13c893c0cdb066a301']
+    while(True):
+        time = datetime.datetime.now()
+        hour = time.hour
+        minute = time.minute
+        times = "{0}{1}".format(hour,minute)
+        if(times == '1830' or times == '0700' or times == '700'):
+            if(Num == 0):
+                for i in friend:
+                    string = get_weather()
+                    itchat.send(string,toUserName=i)
+                Num = 1
         else:
-                result = auto_chat(text)
-                if result.find('菲菲') != -1:
-                        replaced = result.replace('菲菲','崽崽')
-                        itchat.send_msg('[崽崽BOT]\n{}'.format(replaced),toUserName = FromUserName)
-                        return
-                itchat.send_msg('[崽崽BOT]\n{}'.format(result),toUserName = FromUserName)
-        
+            Num = 0
+            
+#多线程启动
+def thr():
+    thr_bot = threading.Thread(target=bot_run)
+    thr_tips = threading.Thread(target=bot_push)
+    thr_bot.start()
+    thr_tips.start()
+
+#消息注册
+@itchat.msg_register(itchat.content.TEXT)
+def auto_reply(msg):
+    FromUser = msg['FromUserName']
+    ToUser = msg['ToUserName']
+    Text = msg['Text']
+    reply = bot_reply(Text)
+    print(reply)
+    itchat.send(reply,toUserName=FromUser)
+
+#Main
+def main():
+    thr()
+
+#Main
 if __name__ == '__main__':
-        itchat.auto_login(hotReload=True)
-        itchat.run()
-        
+    main()
