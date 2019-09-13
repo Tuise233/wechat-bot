@@ -46,7 +46,7 @@ def bot_reply(content):
     result = html.text
     return result
 
-#启动机器人
+#启动机器人py
 def bot_run():
     itchat.auto_login(hotReload=True)
     itchat.run()
@@ -54,11 +54,12 @@ def bot_run():
 #定时推送消息
 def bot_push():
     while(True):
-        time = datetime.datetime.now()
-        hour = time.hour
-        minute = time.minute
-        times = "{0}{1}".format(hour,minute)
-        if(times == '1830' or times == '952' or times == '70'):
+        time.sleep(1)
+        atime = datetime.datetime.now()
+        hour = atime.hour
+        minute = atime.minute
+        times = "{0}:{1}".format(hour,minute)
+        if(times == '18:30' or times == '12:0' or times == '12:00' or times == '6:3' or times == '6:30'):
             if(Num == 0):
                 for i in friend:
                     print(times)
